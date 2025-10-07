@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Refund Tax Record Query</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background-color: #f9f9f9;
+    }
+    h2 {
+      color: #333;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: inline-block;
+      width: 120px;
+      font-weight: bold;
+    }
+    input {
+      padding: 5px;
+      width: 200px;
+    }
+    button {
+      padding: 8px 15px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    table {
+      margin-top: 20px;
+      border-collapse: collapse;
+      width: 100%;
+      background: white;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background-color: #007bff;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+<h2>Refund Tax Record Query</h2>
+
+<div class="form-group">
+  <label for="year">Year:</label>
+  <input type="text" id="year" placeholder="Enter year" required>
+</div>
+
+<button onclick="queryRefundRecords()">Query Records</button>
+
+<table id="resultTable" style="display:none;">
+  <thead>
+  <tr>
+    <th>ID</th>
+    <th>Refund Amount</th>
+    <th>Refund Date</th>
+    <th>Username</th>
+  </tr>
+  </thead>
+  <tbody id="resultBody"></tbody>
+</table>
+
+<script>
+
+  const lastYear = new Date().getFullYear() - 1;
+  document.getElementById("year").value = lastYear;
+
+  function getUsername() {
+    const params = new URLSearchParams(window.location.search);
+    const usernameFromQuery = params.get('username');
+    return (usernameFromQuery && usernameFromQuery.trim())
+            || sessionStorage.getItem('username')
+            || localStorage.getItem('username')
+            || '';
+  }
+
+  function ensureToken() {
+    const p = new URLSearchParams(location.search);
+    const tFromUrl = p.get('token');
+    if (tFromUrl) {
+      localStorage.setItem('token', tFromUrl);
+      sessionStorage.setItem('token', tFromUrl);
+    }
+    return localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+  }
+
+  const username = getUsername();
+  const token = ensureToken();
+
+  async function queryRefundRecords() {
+    const year = document.getElementById("year").value;
+    if (!year) {
+      alert("Please enter a year!");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:8082/record/refundTexRecordQuery?username=" + username + "&year=" + year, {
+        method: "GET",
+        headers: {
+          "Authorization": "Bearer " + token,
+          "Content-Type": "application/json"
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error("Query failed with status " + response.status);
+      }
+
+      const records = await response.json();
+      renderTable(records);
+
+    } catch (error) {
+      console.error("Error querying refund records:", error);
+      alert("Failed to query refund records!");
+    }
+  }
+
+  function renderTable(records) {
+    const resultTable = document.getElementById("resultTable");
+    const resultBody = document.getElementById("resultBody");
+    resultBody.innerHTML = "";
+
+    if (records.length === 0) {
+      alert("No refund records found for this year.");
+      resultTable.style.display = "none";
+      return;
+    }
+
+    records.forEach(record => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+                    <td>${record.id}</td>
+                    <td>${record.refundTaxAmount}</td>
+                    <td>${record.refundDate}</td>
+                    <td>${record.username}</td>
+                `;
+      resultBody.appendChild(row);
+    });
+
+    resultTable.style.display = "table";
+  }
+</script>
+</body>
+</html>

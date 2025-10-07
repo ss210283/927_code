@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>Refund Tax Application</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f6f7fb}
+    .bar{background:#2b78ff;color:#fff;padding:12px 16px;font-weight:700}
+    .wrap{max-width:960px;margin:24px auto;padding:0 16px}
+    .card{background:#fff;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.08);padding:18px}
+    .row{display:flex;gap:10px;align-items:center;margin-top:10px}
+    .btn{padding:9px 14px;border:0;border-radius:10px;background:#2b78ff;color:#fff;font-weight:600;cursor:pointer}
+    .btn.secondary{background:#666}
+    .msg{min-height:22px;margin-top:10px}
+    .ok{color:#2ecc71}.err{color:#e74c3c}
+    .hidden{display:none}
+    .muted{color:#666}
+
+    .hidden {
+      display: none !important;
+    }
+
+    .modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:999}
+    .modal-content{background:#fff;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.2);padding:20px;min-width:340px;position:relative}
+    .modal-content h3{margin-top:0}
+    .close-btn{position:absolute;top:8px;right:12px;font-size:18px;color:#333;cursor:pointer}
+    .form-group{margin:12px 0;display:flex;flex-direction:column}
+    .form-group label{margin-bottom:4px;font-weight:600}
+    .result{margin-top:10px;font-weight:600;color:#2b78ff}
+  </style>
+</head>
+<body>
+<div class="bar">Refund Tax Application</div>
+
+<div class="wrap">
+  <div class="card">
+    <h3>Qualification verification</h3>
+
+    <div class="row">
+      <button class="btn" onclick="checkEligibility()">Tax refund qualification inquiry</button>
+    </div>
+
+    <div id="status" class="msg"></div>
+
+    <div id="applyBox" class="row hidden" style="margin-top:14px">
+      <button class="btn" onclick="openRefundModal()">Confirmation refunding information</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="refundModal">
+  <div class="modal-content">
+    <span class="close-btn" onclick="closeRefundModal()">✖</span>
+    <h3>Tax Refund Information Form</h3>
+
+    <div class="form-group">
+      <label for="refundYear">Year</label>
+      <input type="text" id="refundYear" readonly>
+    </div>
+
+    <div class="form-group">
+      <label for="refundUser">username</label>
+      <input type="text" id="refundUser" readonly>
+    </div>
+
+    <div class="form-group">
+      <label for="refundAmount">Refund amount</label>
+      <input type="text" id="refundAmount" readonly>
+      <button class="btn" onclick="calculateRefundAmount()">Calculate refund amount</button>
+    </div>
+
+    <div class="form-group hidden" id="applyBtnGroup">
+      <button class="btn" onclick="applyRefundTex()">Apply refund</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const REFUND_BASE = 'http://localhost:8081';
+
+  function getUsername() {
+    const params = new URLSearchParams(window.location.search);
+    const usernameFromQuery = params.get('username');
+    return (usernameFromQuery && usernameFromQuery.trim())
+            || sessionStorage.getItem('username')
+            || localStorage.getItem('username')
+            || '';
+  }
+
+  function ensureToken() {
+    const p = new URLSearchParams(location.search);
+    const tFromUrl = p.get('token');
+    if (tFromUrl) {
+      localStorage.setItem('token', tFromUrl);
+      sessionStorage.setItem('token', tFromUrl);
+    }
+    return localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+  }
+
+  const username = getUsername();
+  const token = ensureToken();
+
+  async function checkEligibility(){
+    const status = document.getElementById('status');
+    const apply  = document.getElementById('applyBox');
+    status.className = 'msg';
+    status.textContent = 'Querying...';
+
+    try{
+      const res = await fetch(`${REFUND_BASE}/refund/payRecordQuery?username=${encodeURIComponent(username)}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if(!res.ok){
+        status.className = 'msg err';
+        status.textContent = `Error：HTTP ${res.status}`;
+        apply.classList.add('hidden');
+        return;
+      }
+
+      const data = await res.json();
+      const code = String(data.status);
+
+      if(code === '1'){
+        status.className = 'msg ok';
+        status.textContent = 'Eligible! You can fill in the tax refund information!';
+        apply.classList.remove('hidden');
+      }else if(code === '1000'){
+        status.className = 'msg err';
+        status.textContent = 'No Eligible!';
+        apply.classList.add('hidden');
+      }else{
+        status.className = 'msg err';
+        status.textContent = `Unrecognizable return：${JSON.stringify(data)}`;
+        apply.classList.add('hidden');
+      }
+    }catch(e){
+      status.className = 'msg err';
+      status.textContent = `Request failed：${e.message}`;
+      apply.classList.add('hidden');
+    }
+  }
+
+  function openRefundModal(){
+    document.getElementById("refundModal").style.display = "flex";
+    document.getElementById("refundUser").value = username;
+
+    document.getElementById("refundYear").value = new Date().getFullYear() - 1;
+  }
+
+  function closeRefundModal(){
+    document.getElementById("refundModal").style.display = "none";
+  }
+
+  function calculateRefundAmount(){
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+    const url = `http://localhost:8081/refund/calculateRefundAmount?username=${encodeURIComponent(username)}`;
+
+    fetch(url, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${token}`
+      }
+    })
+    .then(res => {
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    })
+    .then(data => {
+      const amount = data.amount;
+      if (amount == null) {
+        return;
+      }
+      document.getElementById("refundAmount").value = "$ " + amount;
+      document.getElementById("applyBtnGroup").classList.remove("hidden");
+    })
+    .catch(err => {
+      console.error("Calculate failed", err);
+    });
+  }
+
+  function applyRefundTex() {
+
+    fetch(`http://localhost:8081/refund/applyRefundTex?username=${username}`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${token}`
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error("Error code：" + response.status);
+      }
+      return response.json();
+    })
+    .then(data => {
+      alert("Apply success！");
+      closeRefundModal();
+    })
+    .catch(error => {
+      console.error("Apply failed：", error);
+      alert("Your tax refund application failed. Please try again later！");
+    });
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Appointment Medical</title>
+    <style>
+        :root{
+            --bg:#f6f8fb; --card:#fff; --text:#111827; --muted:#6b7280;
+            --line:#e5e7eb; --primary:#2563eb; --primary-700:#1d4ed8;
+        }
+        *{box-sizing:border-box}
+        body{margin:0;background:var(--bg);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+        .wrap{max-width:720px;margin:40px auto;padding:0 16px}
+        .card{background:var(--card);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.06);padding:22px}
+        h1{margin:0 0 6px;font-size:22px}
+        p.desc{margin:0 0 18px;color:var(--muted)}
+        .row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+        .field{flex:1 1 260px;min-width:260px}
+        label{display:block;margin:0 0 6px;font-weight:600}
+        select, input[type="date"]{
+            width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;outline:none;
+        }
+        select:disabled{background:#f3f4f6;color:#9ca3af}
+        .actions{margin-top:10px;display:flex;gap:12px}
+        .btn{border:0;border-radius:12px;padding:12px 18px;font-weight:700;color:#fff;background:var(--primary);cursor:pointer}
+        .btn:disabled{opacity:.55;cursor:not-allowed}
+        .btn:hover{background:var(--primary-700)}
+        .msg{margin-top:8px;font-size:14px;color:var(--muted)}
+        .error{color:#dc2626}
+        .ok{color:#059669}
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <div class="card">
+        <h1>Appointment Medical</h1>
+
+        <div class="row">
+            <div class="field">
+                <label for="hospitalSelect">hospital</label>
+                <select id="hospitalSelect">
+                    <option value="">Please select a hospital</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label for="doctorSelect">doctor</label>
+                <select id="doctorSelect" disabled>
+                    <option value="">Please choose a hospital first</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label for="appDate">Please Select Date</label>
+                <input type="date" id="appDate">
+            </div>
+
+            <div class="field">
+                <label for="timeSelect">available time</label>
+                <select id="timeSelect" disabled>
+                    <option value="">Please choose a doctor first</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button id="confirmBtn" class="btn" disabled>Confirming Appointment</button>
+        </div>
+
+        <div id="msg" class="msg"></div>
+    </div>
+</div>
+
+<script>
+    function getUsername() {
+        const params = new URLSearchParams(window.location.search);
+        const fromUrl = params.get('username');
+        return (fromUrl && fromUrl.trim()) ||
+            sessionStorage.getItem('username') ||
+            localStorage.getItem('username') || '';
+    }
+    function ensureToken() {
+        const p = new URLSearchParams(location.search);
+        const t = p.get('token');
+        if (t) { localStorage.setItem('token', t); sessionStorage.setItem('token', t); }
+        return localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+    }
+    const username = getUsername();
+    const token = ensureToken();
+
+    const authHeaders = token ? { 'Authorization': 'Bearer ' + token } : {};
+
+    const $hospital = document.getElementById('hospitalSelect');
+    const $doctor   = document.getElementById('doctorSelect');
+    const $time     = document.getElementById('timeSelect');
+    const $date     = document.getElementById('appDate');
+    const $confirm  = document.getElementById('confirmBtn');
+    const $msg      = document.getElementById('msg');
+
+    let doctorsCache = []; // [{id, doctorName, avTime/availableTimes/times: []}]
+
+    function setMsg(text, type){ // type: 'error' | 'ok' | undefined
+        $msg.textContent = text || '';
+        $msg.classList.remove('error','ok');
+        if(type) $msg.classList.add(type);
+    }
+
+    async function loadHospitals(){
+        setMsg('');
+        try{
+            const res = await fetch('/medical/queryHospital', { headers: authHeaders });
+            if(!res.ok) throw new Error('Return Error：' + res.status);
+            const data = await res.json();
+            const hospitals = Array.isArray(data) ? data : (data?.data || []);
+            if(!Array.isArray(hospitals)) throw new Error('The data format of the hospital is incorrect');
+
+            $hospital.innerHTML = '<option value="">Please select a hospital</option>';
+            hospitals.forEach(h => {
+                const opt = document.createElement('option');
+                opt.value = h.id;
+                opt.textContent = h.hospitalName ?? ('hospital#' + h.id);
+                $hospital.appendChild(opt);
+            });
+        }catch(e){ setMsg(e.message, 'error'); }
+    }
+
+    async function loadDoctors(hospitalId){
+        resetDoctor(); resetTime(); setMsg('');
+        if(!hospitalId) return;
+        try{
+            const url = `/medical/queryDoctor?id=${encodeURIComponent(hospitalId)}`;
+            const res = await fetch(url, { headers: authHeaders });
+            if(!res.ok) throw new Error('Return Error：' + res.status);
+            const data = await res.json();
+            const doctors = Array.isArray(data) ? data : (data?.data || []);
+            if(!Array.isArray(doctors)) throw new Error('The doctor data format is incorrect');
+
+            doctorsCache = doctors;
+
+            $doctor.innerHTML = '<option value="">Please select a doctor</option>';
+            doctors.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d.id;
+                opt.textContent = d.doctorName ?? ('doctor#' + d.id);
+                $doctor.appendChild(opt);
+            });
+            $doctor.disabled = false;
+        }catch(e){ setMsg(e.message, 'error'); }
+    }
+
+    function loadTimes(doctorId){
+        resetTime(); setMsg('');
+        if(!doctorId) return;
+
+        const doc = doctorsCache.find(d => String(d.id) === String(doctorId));
+        if(!doc){ setMsg('The available time for this doctor was not found！', 'error'); return; }
+
+        const times =
+            Array.isArray(doc.avTime) ? doc.avTime :
+                Array.isArray(doc.availableTimes) ? doc.availableTimes :
+                    Array.isArray(doc.times) ? doc.times : [];
+
+        if(times.length === 0){ setMsg('The doctor is temporarily unavailable！', 'error'); return; }
+
+        $time.innerHTML = '<option value="">Please select the available time</option>';
+        times.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t;
+            opt.textContent = t;
+            $time.appendChild(opt);
+        });
+        $time.disabled = false;
+        updateConfirmEnabled();
+    }
+
+    function resetDoctor(){
+        $doctor.disabled = true;
+        $doctor.innerHTML = '<option value="">Please choose a hospital first</option>';
+        updateConfirmEnabled();
+    }
+    function resetTime(){
+        $time.disabled = true;
+        $time.innerHTML = '<option value="">Please choose a doctor first</option>';
+        updateConfirmEnabled();
+    }
+    function updateConfirmEnabled(){
+        $confirm.disabled = !($hospital.value && $doctor.value && $time.value && $date.value);
+    }
+
+    $hospital.addEventListener('change', e => loadDoctors(e.target.value));
+    $doctor.addEventListener('change', e => { loadTimes(e.target.value); });
+    $time.addEventListener('change', updateConfirmEnabled);
+    $date.addEventListener('change', updateConfirmEnabled);
+
+    $confirm.addEventListener('click', async () => {
+        setMsg('');
+
+        if ($confirm.disabled) return;
+
+        const payload = {
+            hospitalId: $hospital.value,
+            doctorId: $doctor.value,
+            appointDatetime: `${$date.value}T${$time.value}`,
+            username: username
+        };
+
+        if(!payload.hospitalId || !payload.doctorId || !payload.appointDatetime || !payload.username){
+            setMsg('Please Check Info。', 'error');
+            return;
+        }
+
+        $confirm.disabled = true;
+        $confirm.textContent = 'Committing...';
+
+        try{
+            const qs = new URLSearchParams(payload).toString();
+            const res = await fetch(`/medical/appointMedical?${qs}`, {
+                method: 'GET',
+                headers: {
+                    ...authHeaders,
+                    'Accept': 'application/json'
+                }
+            });
+
+            if(!res.ok) throw new Error('Return Error：' + res.status);
+
+            let data;
+            try { data = await res.json(); } catch(_) { data = {}; }
+
+            const ok = (data && (data.success === true || data.code === 1)) || res.status === 200;
+            if(ok){
+                setMsg('Successful Appointment！', 'ok');
+            }else{
+                setMsg(data?.msg || 'Your reservation failed. Please try again later！', 'error');
+            }
+        }catch(e){
+            setMsg(e.message || 'Network Anomaly', 'error');
+        }finally{
+            $confirm.textContent = 'Confirming Appointment';
+            updateConfirmEnabled();
+        }
+    });
+
+    loadHospitals();
+</script>
+</body>
+</html>

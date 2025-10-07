@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>User Register</title>
+    <style>
+        :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; }
+        body { margin: 0; background: #f6f7f9; }
+        .container { max-width: 480px; margin: 6vh auto; background: #fff; padding: 28px; border-radius: 16px; box-shadow: 0 6px 24px rgba(0,0,0,.06); }
+        h1 { margin: 0 0 18px; font-size: 22px; }
+        label { display:block; margin: 12px 0 6px; font-weight: 600; }
+        input { width:100%; padding:12px; border:1px solid #dcdfe6; border-radius:10px; outline:none; box-sizing:border-box; }
+        input:focus { border-color:#409EFF; }
+        .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+        .help { color:#666; font-size:12px; margin-top:6px; }
+        .error { color:#e53935; font-size:13px; margin-top:8px; }
+        .success { color:#2e7d32; font-size:13px; margin-top:8px; }
+        button { width:100%; padding:12px; margin-top:16px; border:none; border-radius:10px; cursor:pointer; background:#409EFF; color:#fff; font-weight:700; }
+        button:disabled { opacity:.6; cursor:not-allowed; }
+        .muted { color:#888; font-size:12px; margin-top:12px; text-align:center; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Register a new user</h1>
+
+    <form id="form">
+        <label for="username">username</label>
+        <input id="username" name="username" />
+
+        <label for="name">full name</label>
+        <input id="name" name="name" />
+
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" required autocomplete="email" />
+
+        <label for="password">password</label>
+        <input id="password" name="password" type="password" required autocomplete="new-password" />
+        <div class="help" id="pwHint">At least 8 characters, including numbers and letters!</div>
+
+        <label for="confirm">confirm password</label>
+        <input id="confirm" name="confirm" type="password" required autocomplete="new-password" />
+
+        <div id="msg" class="error" style="display:none;"></div>
+        <div id="ok" class="success" style="display:none;"></div>
+
+        <button id="submitBtn" type="submit">Register</button>
+    </form>
+</div>
+
+<script>
+    const BASE_URL = "http://localhost:8080";
+
+    const form = document.getElementById('form');
+    const submitBtn = document.getElementById('submitBtn');
+    const msg = document.getElementById('msg');
+    const ok = document.getElementById('ok');
+    const pw = document.getElementById('password');
+    const confirmPw = document.getElementById('confirm');
+
+    function showError(text) {
+        msg.style.display = 'block';
+        msg.textContent = text;
+        ok.style.display = 'none';
+    }
+    function showOk(text) {
+        ok.style.display = 'block';
+        ok.textContent = text;
+        msg.style.display = 'none';
+    }
+
+    function validEmail(v) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+    }
+
+    function validPassword(v) {
+        return /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]{8,}$/.test(v);
+    }
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        showError(''); msg.style.display = 'none'; ok.style.display = 'none';
+
+        const formData = new FormData(form);
+        const email = (formData.get('email') || '').trim();
+        const password = (formData.get('password') || '').trim();
+        const confirm = (formData.get('confirm') || '').trim();
+
+        if (!validEmail(email)) {
+            showError('Please enter a valid email address');
+            return;
+        }
+        if (!validPassword(password)) {
+            showError('The password must be at least 8 characters long and include both numbers and letters!');
+            return;
+        }
+        if (password !== confirm) {
+            showError('The passwords entered twice are inconsistent!');
+            return;
+        }
+
+        const payload = {
+            email: email,
+            password: password,
+            username: (formData.get('username') || '').trim(),
+            name: (formData.get('name') || '').trim()
+        };
+
+        Object.keys(payload).forEach(k => {
+            if (payload[k] === '' || payload[k] === null) delete payload[k];
+        });
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Committing…';
+
+        try {
+            const res = await fetch(`${BASE_URL}/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            const contentType = res.headers.get('content-type') || '';
+            const isJson = contentType.includes('application/json');
+            const data = isJson ? await res.json().catch(() => ({})) : await res.text();
+
+            if (!res.ok) {
+                const serverMsg = isJson ? (data.message || data.error || JSON.stringify(data)) : ('' + data);
+                showError(`Fail to register：${serverMsg || res.status}`);
+            } else {
+                const successMsg = isJson ? (data.message || 'Registered successfully！') : 'Registered successfully！';
+                showOk(successMsg);
+                form.reset();
+            }
+        } catch (err) {
+            showError(`Network error：${err.message || err}`);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Register';
+        }
+    });
+
+    ['email','username','firstName','lastName'].forEach(id => {
+        const el = document.getElementById(id);
+        el && el.addEventListener('blur', () => el.value = el.value.trim());
+    });
+</script>
+</body>
+</html>

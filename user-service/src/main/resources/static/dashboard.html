@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <title>Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f6f7fb}
+        .wrap{max-width:900px;margin:8vh auto;padding:0 16px}
+        .header{display:flex;justify-content:space-between;align-items:center}
+        .title{font-size:22px;font-weight:700}
+        .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:18px}
+        .card{background:#fff;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.08);padding:18px}
+        .btn{padding:10px 14px;border:0;border-radius:10px;background:#2b78ff;color:#fff;font-weight:600;cursor:pointer}
+        .muted{color:#666}
+    </style>
+</head>
+<body>
+<div class="wrap">
+
+    <div class="grid">
+        <div class="card">
+            <h3>Refund Tax Application</h3>
+            <button class="btn" onclick="goToApplication()">Enter into</button>
+        </div>
+
+        <div class="card">
+            <h3>Refund Tax Record Query</h3>
+            <button class="btn" onclick="goToRecord()">Enter into</button>
+        </div>
+
+        <div class="card">
+            <h3>Medical Appointment</h3>
+            <button class="btn" onclick="goToAppointment()">Enter into</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function goToApplication() {
+        const username = localStorage.getItem('username') || '';
+        sessionStorage.setItem("username",username);
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+        const url = `http://localhost:8081/refundApplication.html?username=${encodeURIComponent(username)}&token=${encodeURIComponent(token)}`;
+        window.location.href = url;
+    }
+
+    function goToRecord(){
+        const username = localStorage.getItem('username') || '';
+        sessionStorage.setItem("username",username);
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+        const url = `http://localhost:8082/refundRecordQuery.html?username=${encodeURIComponent(username)}&token=${encodeURIComponent(token)}`;
+        window.location.href = url;
+    }
+
+    function goToAppointment(){
+        const username = localStorage.getItem('username') || '';
+        const name = localStorage.getItem('name') || '';
+        sessionStorage.setItem("username",username);
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+        const url = `http://localhost:8083/identityVerification.html?username=${encodeURIComponent(username)}&name=${encodeURIComponent(name)}&token=${encodeURIComponent(token)}`;
+        window.location.href = url;
+    }
+</script>
+</body>
+</html>
