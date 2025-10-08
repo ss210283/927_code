@@ -9,7 +9,6 @@ spring:
       server:
         webflux:
           routes:
-            # 1) 根路径 -> user-service 的 index.html
             - id: user-home
               predicates:
                 - Path=/
@@ -17,13 +16,11 @@ spring:
               filters:
                 - SetPath=/index.html
 
-            # 2) 静态页都从 user-service 提供（写成“一个 Path 谓词 + 多个模式”）
             - id: user-static-pages
               predicates:
                 - Path=/index.html,/register.html,/dashboard.html,/favicon.ico
               uri: http://user-service:8080
 
-            # 3) 登录 / 注册（前端发 /login、/register）
             - id: user-login
               predicates:
                 - Path=/login
@@ -33,13 +30,11 @@ spring:
                 - Path=/register
               uri: http://user-service:8080
 
-            # 4) user-service 其它接口（保留 /user/** 与 /users/**）
             - id: user-service-api
               predicates:
                 - Path=/user/**,/users/**
               uri: http://user-service:8080
 
-            # 5) 其余三个服务的 API 前缀直转发
             - id: refund-service
               predicates:
                 - Path=/refund/**,/refunds/**
@@ -55,7 +50,6 @@ spring:
                 - Path=/medical/**,/medicine/**
               uri: http://medical-service:8083
 
-            # 6) 三个服务的静态页面直达（从 dashboard 跳转）
             - id: refund-static
               predicates:
                 - Path=/refund/refundApplication.html
@@ -82,7 +76,6 @@ spring:
                 - Path=/refund/refundApplication.html
               uri: http://refund-service:8081
 
-            # --- refund-service 接口 ---
             - id: refund-api
               predicates:
                 - Path=/refund/**,/refunds/**
@@ -95,7 +88,6 @@ spring:
               filters:
                 - SetPath=/refundRecordQuery.html
 
-            # === record-service 接口 ===
             - id: record-api
               predicates:
                 - Path=/record/**,/records/**
@@ -115,7 +107,6 @@ spring:
               filters:
                 - SetPath=/hospitalChoice.html
 
-            # === medical-service 接口 ===
             - id: medical-api
               predicates:
                 - Path=/medical/**,/medicine/**

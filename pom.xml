@@ -10,7 +10,6 @@
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <!-- 让所有子模块用同一套 Spring Boot 版本（与样板一致） -->
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
