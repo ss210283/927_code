@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
@@ -30,16 +31,25 @@ public class SecurityConfiguration {
 	}
 
 	@Bean
-	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-		http
-		.csrf(csrf -> csrf.disable())
-		.sessionManagement(sm -> sm.sessionCreationPolicy(STATELESS))
-		.authorizeHttpRequests(auth -> auth
-				.requestMatchers(HttpMethod.GET, "/record/refundTexRecordQuery").permitAll()
-				.requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
-				.requestMatchers(HttpMethod.GET, "/", "/refundRecordQuery.html").permitAll()
-				.anyRequest().authenticated()
-		);
-		return http.build();
+	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+		return http
+				.csrf(csrf -> csrf.disable())
+				.authorizeHttpRequests(auth -> auth
+						// 静态资源与页面放行
+						.requestMatchers(HttpMethod.GET,
+								"/refundRecordQuery.html",
+								"/index.html",
+								"/favicon.ico",
+								"/css/**",
+								"/js/**",
+								"/images/**").permitAll()
+
+						// record 的接口放行（后续要鉴权再收紧）
+						.requestMatchers("/record/**", "/records/**").permitAll()
+
+						.anyRequest().permitAll()
+				)
+				.httpBasic(Customizer.withDefaults())
+				.build();
 	}
 }

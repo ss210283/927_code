@@ -1,60 +1,132 @@
 server:
-  port: 8084
-  http2:
-    enabled: true
+  port: 80
 
 spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/postgres
-    username:
-    password:
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      pool-name: SpringBootBoilerplateHikariPool
+  application:
+    name: gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            # 1) 根路径 -> user-service 的 index.html
+            - id: user-home
+              predicates:
+                - Path=/
+              uri: http://user-service:8080
+              filters:
+                - SetPath=/index.html
 
-  jpa:
-    hibernate:
-      ddl-auto: update
-    open-in-view: false
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
-  jta:
-    enabled: false
+            # 2) 静态页都从 user-service 提供（写成“一个 Path 谓词 + 多个模式”）
+            - id: user-static-pages
+              predicates:
+                - Path=/index.html,/register.html,/dashboard.html,/favicon.ico
+              uri: http://user-service:8080
 
-springdoc:
-  show-actuator: true
+            # 3) 登录 / 注册（前端发 /login、/register）
+            - id: user-login
+              predicates:
+                - Path=/login
+              uri: http://user-service:8080
+            - id: user-register
+              predicates:
+                - Path=/register
+              uri: http://user-service:8080
 
-management:
-  endpoint:
-    health:
-      show-details: ALWAYS
-      probes:
-        enabled: true
-  endpoints:
-    web:
-      exposure:
-        include: "*"
+            # 4) user-service 其它接口（保留 /user/** 与 /users/**）
+            - id: user-service-api
+              predicates:
+                - Path=/user/**,/users/**
+              uri: http://user-service:8080
+
+            # 5) 其余三个服务的 API 前缀直转发
+            - id: refund-service
+              predicates:
+                - Path=/refund/**,/refunds/**
+              uri: http://refund-service:8081
+
+            - id: record-service
+              predicates:
+                - Path=/record/**,/records/**
+              uri: http://record-service:8082
+
+            - id: medical-service
+              predicates:
+                - Path=/medical/**,/medicine/**
+              uri: http://medical-service:8083
+
+            # 6) 三个服务的静态页面直达（从 dashboard 跳转）
+            - id: refund-static
+              predicates:
+                - Path=/refund/refundApplication.html
+              uri: http://refund-service:8081
+              filters:
+                - SetPath=/refundApplication.html
+
+            - id: record-static
+              predicates:
+                - Path=/record/refundRecordQuery.html
+              uri: http://record-service:8082
+              filters:
+                - SetPath=/refundRecordQuery.html
+
+            - id: medical-static
+              predicates:
+                - Path=/medical/identityVerification.html
+              uri: http://medical-service:8083
+              filters:
+                - SetPath=/identityVerification.html
+
+            - id: refund-static
+              predicates:
+                - Path=/refund/refundApplication.html
+              uri: http://refund-service:8081
+
+            # --- refund-service 接口 ---
+            - id: refund-api
+              predicates:
+                - Path=/refund/**,/refunds/**
+              uri: http://refund-service:8081
+
+            - id: record-static
+              predicates:
+                - Path=/record/refundRecordQuery.html
+              uri: http://record-service:8082
+              filters:
+                - SetPath=/refundRecordQuery.html
+
+            # === record-service 接口 ===
+            - id: record-api
+              predicates:
+                - Path=/record/**,/records/**
+              uri: http://record-service:8082
+
+            - id: medical-static-identity
+              predicates:
+                - Path=/medical/identityVerification.html
+              uri: http://medical-service:8083
+              filters:
+                - SetPath=/identityVerification.html
+
+            - id: medical-static-hospital
+              predicates:
+                - Path=/medical/hospitalChoice.html
+              uri: http://medical-service:8083
+              filters:
+                - SetPath=/hospitalChoice.html
+
+            # === medical-service 接口 ===
+            - id: medical-api
+              predicates:
+                - Path=/medical/**,/medicine/**
+              uri: http://medical-service:8083
 
 logging:
   level:
-    org.springframework: INFO
-    com.farukgenc.boilerplate.springboot: INFO
+    org.springframework.cloud.gateway: DEBUG
 
-## FIXME : Customize JWT token and Swagger information for your application
-
-jwt:
-  secretKey: secret
-  issuer: www.farukgenc.com
-  expirationMinute: 10
-
-swagger:
-  contact-name: Faruk Genc
-  contact-mail: omer@farukgenc.com
-  contact-url: https://farukgenc.com
-  app-name: Spring Boot Boilerplate Project
-  app-description: "Spring Boot Boilerplate is a starter kit. This project includes : Spring Boot(3.5.6), Spring Data JPA, Spring Validation, Spring Security + JWT Token, PostgreSQL, Mapstruct, Lombok, Swagger (Open API)"
-  app-version: 3.5.6
-  app-license-url: https://www.apache.org/licenses/LICENSE-2.0.html
-  app-license: Apache 2.0
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway

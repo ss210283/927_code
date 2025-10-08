@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
@@ -30,18 +31,23 @@ public class SecurityConfiguration {
 	}
 
 	@Bean
-	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-		http
-		.csrf(csrf -> csrf.disable())
-		.sessionManagement(sm -> sm.sessionCreationPolicy(STATELESS))
-		.authorizeHttpRequests(auth -> auth
-				.requestMatchers(HttpMethod.GET, "/refund/payRecordQuery").permitAll()
-				.requestMatchers(HttpMethod.GET, "/refund/calculateRefundAmount").permitAll()
-				.requestMatchers(HttpMethod.GET, "/refund/applyRefundTex").permitAll()
-				.requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
-				.requestMatchers(HttpMethod.GET, "/", "/refundApplication.html").permitAll()
-				.anyRequest().authenticated()
-		);
-		return http.build();
+	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+		return http
+				.csrf(csrf -> csrf.disable())
+				.authorizeHttpRequests(auth -> auth
+						.requestMatchers(HttpMethod.GET,
+								"/refundApplication.html",
+								"/index.html",
+								"/favicon.ico",
+								"/css/**",
+								"/js/**",
+								"/images/**").permitAll()
+
+						.requestMatchers("/refund/**").permitAll()
+
+						.anyRequest().permitAll()
+				)
+				.httpBasic(Customizer.withDefaults())
+				.build();
 	}
 }

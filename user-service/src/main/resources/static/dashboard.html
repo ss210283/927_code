@@ -41,7 +41,7 @@
         const username = localStorage.getItem('username') || '';
         sessionStorage.setItem("username",username);
         const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
-        const url = `http://localhost:8081/refundApplication.html?username=${encodeURIComponent(username)}&token=${encodeURIComponent(token)}`;
+        const url = `/refund/refundApplication.html?username=${encodeURIComponent(username)}&token=${encodeURIComponent(token)}`;
         window.location.href = url;
     }
 
@@ -49,7 +49,7 @@
         const username = localStorage.getItem('username') || '';
         sessionStorage.setItem("username",username);
         const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
-        const url = `http://localhost:8082/refundRecordQuery.html?username=${encodeURIComponent(username)}&token=${encodeURIComponent(token)}`;
+        const url = `/record/refundRecordQuery.html?username=${encodeURIComponent(username)}&token=${encodeURIComponent(token)}`;
         window.location.href = url;
     }
 
@@ -58,7 +58,7 @@
         const name = localStorage.getItem('name') || '';
         sessionStorage.setItem("username",username);
         const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
-        const url = `http://localhost:8083/identityVerification.html?username=${encodeURIComponent(username)}&name=${encodeURIComponent(name)}&token=${encodeURIComponent(token)}`;
+        const url = `/medical/identityVerification.html?username=${encodeURIComponent(username)}&name=${encodeURIComponent(name)}&token=${encodeURIComponent(token)}`;
         window.location.href = url;
     }
 </script>
