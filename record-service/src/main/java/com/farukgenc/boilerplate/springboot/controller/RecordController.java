@@ -1,6 +1,7 @@
 package com.farukgenc.boilerplate.springboot.controller;
 
 
+import com.farukgenc.boilerplate.springboot.dto.RecordPOJO;
 import com.farukgenc.boilerplate.springboot.model.RefundTaxRecord;
 import com.farukgenc.boilerplate.springboot.service.RecordService;
 import lombok.RequiredArgsConstructor;
@@ -19,9 +20,9 @@ public class RecordController {
     private RecordService recordService;
 
     @GetMapping("/refundTexRecordQuery")
-    public ResponseEntity<List<RefundTaxRecord>> refundTexRecordQuery(@RequestParam("username") String username, @RequestParam("year") String year) {
+    public ResponseEntity<List<RecordPOJO>> refundTexRecordQuery(@RequestParam("username") String username, @RequestParam("year") String year) {
 
-        List<RefundTaxRecord> list = recordService.refundTexRecordQuery(username,year);
+        List<RecordPOJO> list = recordService.refundTexRecordQuery(username,year);
         return ResponseEntity.ok(list);
     }
 }

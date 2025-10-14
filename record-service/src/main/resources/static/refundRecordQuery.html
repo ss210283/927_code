@@ -1,81 +1,73 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Refund Tax Record Query</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 30px;
-      background-color: #f9f9f9;
+    :root{
+      --bg1:#89f7fe; --bg2:#66a6ff;
+      --card:#fff; --text:#111827; --muted:#6b7280;
+      --line:#e5e7eb; --primary:#667eea;
     }
-    h2 {
-      color: #333;
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+      background:linear-gradient(120deg,var(--bg1),var(--bg2));
+      display:flex; align-items:flex-start; justify-content:center;
+      min-height:100vh;
     }
-    .form-group {
-      margin-bottom: 15px;
+    .wrap{width:min(960px,94vw); margin:7vh auto; padding:0 12px;}
+    .card{background:var(--card); color:var(--text); border-radius:18px; padding:22px;
+      box-shadow:0 18px 40px rgba(0,0,0,.18); animation:fadeIn .45s ease both;}
+    .title{margin:0 0 10px; font-weight:800; font-size:22px}
+    .row{display:flex; gap:12px; flex-wrap:wrap; align-items:center}
+    label{font-weight:700}
+    input{
+      padding:12px 14px; border:1px solid var(--line); border-radius:12px; outline:none; transition:.15s;
     }
-    label {
-      display: inline-block;
-      width: 120px;
-      font-weight: bold;
+    input:focus{border-color:#93c5fd; box-shadow:0 0 0 4px #93c5fd33}
+    .btn{
+      padding:12px 16px; border:0; border-radius:12px; color:#fff; background:linear-gradient(90deg,#667eea,#764ba2);
+      font-weight:800; cursor:pointer; transition:.18s transform,.18s box-shadow;
     }
-    input {
-      padding: 5px;
-      width: 200px;
-    }
-    button {
-      padding: 8px 15px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      cursor: pointer;
-      border-radius: 4px;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-    table {
-      margin-top: 20px;
-      border-collapse: collapse;
-      width: 100%;
-      background: white;
-    }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 10px;
-      text-align: center;
-    }
-    th {
-      background-color: #007bff;
-      color: white;
-    }
+    .btn:hover{transform:translateY(-1px); box-shadow:0 8px 18px rgba(102,126,234,.35)}
+    table{width:100%; border-collapse:separate; border-spacing:0; margin-top:16px; background:#fff; border-radius:14px; overflow:hidden}
+    thead th{background:#6366f1; color:#fff; padding:12px; text-align:center}
+    tbody td{padding:12px; border-top:1px solid #eef2f7; text-align:center}
+    .note{color:var(--muted); margin-top:8px}
+    @keyframes fadeIn{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:translateY(0)}}
   </style>
 </head>
 <body>
-<h2>Refund Tax Record Query</h2>
+<div class="wrap">
+  <div class="card">
+    <h2 class="title">Refund Tax Record Query</h2>
 
-<div class="form-group">
-  <label for="year">Year:</label>
-  <input type="text" id="year" placeholder="Enter year" required>
+    <div class="row" style="margin-bottom:12px">
+      <label for="year">Year</label>
+      <input type="text" id="year" placeholder="Enter year" required style="min-width:140px">
+      <button class="btn" onclick="queryRefundRecords()">Query Records</button>
+    </div>
+
+    <div class="note">Tip: default is last year.</div>
+
+    <table id="resultTable" style="display:none;">
+      <thead>
+      <tr>
+        <th>ID</th>
+        <th>Refund Amount</th>
+        <th>Refund Date</th>
+        <th>Username</th>
+      </tr>
+      </thead>
+      <tbody id="resultBody"></tbody>
+    </table>
+  </div>
 </div>
 
-<button onclick="queryRefundRecords()">Query Records</button>
-
-<table id="resultTable" style="display:none;">
-  <thead>
-  <tr>
-    <th>ID</th>
-    <th>Refund Amount</th>
-    <th>Refund Date</th>
-    <th>Username</th>
-  </tr>
-  </thead>
-  <tbody id="resultBody"></tbody>
-</table>
-
 <script>
-
   const lastYear = new Date().getFullYear() - 1;
   document.getElementById("year").value = lastYear;
 
@@ -136,7 +128,7 @@
     const resultBody = document.getElementById("resultBody");
     resultBody.innerHTML = "";
 
-    if (records.length === 0) {
+    if (!records || records.length === 0) {
       alert("No refund records found for this year.");
       resultTable.style.display = "none";
       return;
@@ -145,16 +137,18 @@
     records.forEach(record => {
       const row = document.createElement("tr");
       row.innerHTML = `
-                    <td>${record.id}</td>
-                    <td>${record.refundTaxAmount}</td>
-                    <td>${record.refundDate}</td>
-                    <td>${record.username}</td>
-                `;
+        <td>${record.id}</td>
+        <td>${record.refundTaxAmount}</td>
+        <td>${record.refundDate}</td>
+        <td>${record.username}</td>
+      `;
       resultBody.appendChild(row);
     });
 
     resultTable.style.display = "table";
   }
+
+
 </script>
 </body>
 </html>

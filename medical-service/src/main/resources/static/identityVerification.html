@@ -6,35 +6,34 @@
     <title>Identity Verification</title>
     <style>
         :root {
-            --bg:#f5f7fb; --card:#fff; --text:#1f2937; --muted:#6b7280;
-            --primary:#3b82f6; --primary-700:#2563eb; --ok:#16a34a; --bad:#dc2626; --ring:#93c5fd;
+            --bg1:#667eea; --bg2:#764ba2;
+            --card:#fff; --text:#1f2937; --muted:#6b7280;
+            --primary:#667eea; --primary-700:#5a67d8; --ok:#16a34a; --bad:#dc2626; --ring:#93c5fd;
         }
         *{box-sizing:border-box}
-        body{margin:0;background:var(--bg);font:16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;}
-        .wrap{min-height:100svh;display:grid;place-items:center;padding:24px}
-        .card{width:min(520px, 92vw);background:var(--card);color:var(--text);
-            border-radius:18px; padding:28px 28px 24px; box-shadow:0 10px 30px rgba(0,0,0,.08)}
+        html,body{height:100%}
+        body{
+            margin:0; font:16px/1.5 system-ui,-apple-system, Segoe UI, Roboto, Helvetica, Arial;
+            background:linear-gradient(135deg,var(--bg1),var(--bg2));
+            display:flex; align-items:center; justify-content:center; min-height:100vh; padding:16px;
+        }
+        .card{
+            width:min(520px, 92vw); background:var(--card); color:var(--text);
+            border-radius:18px; padding:28px 28px 24px; box-shadow:0 18px 40px rgba(0,0,0,.18);
+            animation:fadeIn .45s ease both;
+        }
         h1{margin:0 0 8px;font-size:28px}
         .sub{color:var(--muted);font-size:14px;margin-bottom:20px}
-        .hint{font-size:13px;color:var(--muted);background:#eef2ff;border:1px dashed #c7d2fe;
-            padding:8px 10px;border-radius:10px;margin-bottom:18px}
         .row{margin-bottom:16px}
-        label{display:block;margin:0 0 6px;font-weight:600}
-        input{width:100%;padding:12px 14px;border:1px solid #e5e7eb;border-radius:12px;
-            outline:none;transition:.15s}
+        label{display:block;margin:0 0 6px;font-weight:700}
+        input{width:100%;padding:12px 14px;border:1px solid #e5e7eb;border-radius:12px;outline:none;transition:.15s}
         input:focus{border-color:var(--ring); box-shadow:0 0 0 4px #93c5fd33}
-        .actions{margin-top:6px}
         .btn{width:100%;border:0;border-radius:12px;padding:12px 16px;color:#fff;
-            background:var(--primary);font-weight:700;cursor:pointer;transition:.15s}
-        .btn:hover{background:var(--primary-700)}
+            background:linear-gradient(90deg,#667eea,#764ba2);font-weight:800;cursor:pointer;transition:.18s transform,.18s box-shadow}
+        .btn:hover{transform:translateY(-1px); box-shadow:0 8px 18px rgba(102,126,234,.35)}
         .msg{margin-top:14px;font-weight:700;display:none}
-        .msg.ok{color:var(--ok)}
-        .msg.bad{color:var(--bad)}
+        .msg.ok{color:var(--ok)} .msg.bad{color:var(--bad)}
         .foot{margin-top:10px;font-size:12px;color:var(--muted);text-align:center}
-        .badge{display:inline-block;padding:2px 8px;border-radius:999px;background:#f1f5f9;color:#475569;font-size:12px}
-        .pair{display:flex;gap:10px;align-items:center}
-        .pair code{background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:4px 6px}
-
         .overlay{
             position:fixed; inset:0; display:none; z-index:1000;
             background:rgba(0,0,0,.45); place-items:center; padding:16px;
@@ -43,36 +42,32 @@
         .dialog{
             position:relative; width:min(92vw,420px); background:#fff; color:var(--text);
             border-radius:16px; padding:20px 20px 16px; box-shadow:0 20px 60px rgba(0,0,0,.18);
+            animation:fadeIn .25s ease both;
         }
         .close-x{
             position:absolute; top:8px; right:10px; border:0; background:transparent;
             font-size:22px; line-height:1; cursor:pointer; color:#9ca3af;
         }
         .close-x:hover{color:#4b5563}
+        @keyframes fadeIn{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:translateY(0)}}
     </style>
 </head>
 <body>
-<div class="wrap">
-    <div class="card" role="region" aria-labelledby="title">
-        <h1 id="title">Verify Identity</h1>
+<div class="card" role="region" aria-labelledby="title">
+    <h1 id="title">Verify Identity</h1>
+    <p class="sub">Please enter the same <b>Username</b> and <b>Name</b> as recorded.</p>
 
-        <form id="form" autocomplete="off">
-            <div class="row">
-                <label for="username">Username</label>
-                <input id="username" name="username" placeholder="Enter your username" inputmode="latin" />
-            </div>
-
-            <div class="row">
-                <label for="name">Name</label>
-                <input id="name" name="name" placeholder="Enter your full name" />
-            </div>
-
-            <div class="actions">
-                <button type="submit" class="btn">Verify Identity</button>
-            </div>
-        </form>
-
-    </div>
+    <form id="form" autocomplete="off">
+        <div class="row">
+            <label for="username">Username</label>
+            <input id="username" name="username" placeholder="Enter your username" inputmode="latin" />
+        </div>
+        <div class="row">
+            <label for="name">Name</label>
+            <input id="name" name="name" placeholder="Enter your full name" />
+        </div>
+        <button type="submit" class="btn">Verify Identity</button>
+    </form>
 </div>
 
 <!-- Success dialog -->
@@ -81,7 +76,7 @@
         <button class="close-x" aria-label="Close" onclick="hide('dlgSuccess')">×</button>
         <h2 id="succTitle" style="color:var(--ok)">Verification passed</h2>
         <p>Your identity has been verified successfully.</p>
-        <button class="btn ok mt12" onclick="goHospital()">OK</button>
+        <button class="btn" onclick="goHospital()">OK</button>
     </div>
 </div>
 
@@ -95,7 +90,6 @@
 </div>
 
 <script>
-
     function params(){ return new URLSearchParams(window.location.search); }
     function getFromStores(k){
         const v = params().get(k) || sessionStorage.getItem(k) || localStorage.getItem(k) || '';
@@ -129,7 +123,6 @@
             show('dlgFailed');
         }
     });
-
 </script>
 </body>
 </html>
